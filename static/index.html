@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity BetterSessions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/chart.umd.min.js"></script>
+  <script src="/lucide.min.js"></script>
+</head>
+<body class="m3-theme">
+  <div class="m3-app-scaffold">
+    
+    <!-- Top Bar -->
+    <header class="m3-top-app-bar">
+      <div class="m3-brand-container">
+        <h1 class="serif-brand">Antigravity <em>BetterSessions</em></h1>
+
+        <!-- Account Switcher Pill -->
+        <div class="m3-account-switcher" id="account-switcher">
+          <button class="m3-acc-btn active" data-account="all" onclick="switchAccount('all')">Все</button>
+        </div>
+      </div>
+
+      <div class="m3-actions-cluster">
+        <!-- Version & Update Badge -->
+        <button id="btn-version" class="m3-version-btn" title="Текущая версия. Нажмите для проверки обновлений" onclick="checkUpdateManual()">
+          <span id="version-text">v0.2.0</span>
+        </button>
+        <button id="btn-update-alert" class="m3-update-badge" style="display: none;" onclick="openUpdateModal()" title="Доступно обновление!">
+          <span class="update-pulse-dot"></span>
+          <span id="update-badge-text">⚡ Обновить</span>
+        </button>
+
+        <!-- Unified Compact Status Chip -->
+        <div id="connection-status" class="m3-chip offline" title="Статус подключения">
+          <span class="m3-dot" id="sync-dot"></span>
+          <span id="tier-name" class="m3-chip-text">Оффлайн</span>
+        </div>
+
+        <!-- Sound Alert Button -->
+        <button id="sound-alert-btn" class="m3-icon-btn active" title="Звуковые оповещения включены" onclick="toggleSoundAlert()">
+          <i data-lucide="bell" id="sound-alert-icon"></i>
+        </button>
+
+        <!-- Mini HUD Button -->
+        <button id="btn-hud" class="m3-icon-btn hud-launch-btn" title="Мини-виджет (HUD) поверх всех окон" onclick="toggleMiniHud()">
+          <i data-lucide="pin"></i>
+        </button>
+
+        <!-- Disk & Cache Cleaner Button -->
+        <button id="btn-cleaner" class="m3-icon-btn" title="Очистка диска и кэша" onclick="openCleanerModal()">
+          <i data-lucide="hard-drive"></i>
+        </button>
+
+        <!-- Model Efficiency & Cost Calculator Button -->
+        <button id="btn-advisor" class="m3-icon-btn" title="Калькулятор экономии и советник моделей" onclick="openAdvisorModal()">
+          <i data-lucide="sparkles"></i>
+        </button>
+
+        <!-- Refresh Button -->
+        <button id="btn-refresh" class="m3-icon-btn" title="Обновить данные">
+          <i data-lucide="rotate-cw" id="refresh-icon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="m3-nav-segmented">
+      <button class="m3-nav-pill active" data-tab="tab-overview">
+        <i data-lucide="gauge"></i>
+        <span>Квоты</span>
+      </button>
+      <button class="m3-nav-pill" data-tab="tab-analytics">
+        <i data-lucide="line-chart"></i>
+        <span>Графики</span>
+      </button>
+      <button class="m3-nav-pill" data-tab="tab-workspaces">
+        <i data-lucide="folder"></i>
+        <span>Проекты</span>
+      </button>
+      <button class="m3-nav-pill" data-tab="tab-history">
+        <i data-lucide="history"></i>
+        <span>История</span>
+      </button>
+    </nav>
+
+    <!-- Content -->
+    <main class="m3-content-container">
+
+      <!-- TAB 1: QUOTAS -->
+      <div id="tab-overview" class="tab-pane active">
+        
+        <!-- Live Metrics Strip -->
+        <div class="m3-velocity-strip" id="velocity-strip">
+          <div class="m3-v-item">
+            <span class="m3-v-label">Текущий запрос</span>
+            <span class="m3-v-val serif-digit in-accent" id="live-step-delta">+0</span>
+          </div>
+          <div class="m3-v-divider"></div>
+          <div class="m3-v-item">
+            <span class="m3-v-label">За сессию</span>
+            <span class="m3-v-val serif-digit in-accent" id="live-session-delta">+0</span>
+          </div>
+          <div class="m3-v-divider"></div>
+          <div class="m3-v-item">
+            <span class="m3-v-label">За сегодня</span>
+            <span class="m3-v-val serif-digit" id="live-today-tokens">0</span>
+          </div>
+          <div class="m3-v-divider"></div>
+          <div class="m3-v-item">
+            <span class="m3-v-label">Активный аккаунт</span>
+            <span class="m3-v-val serif-digit" id="live-active-account">Aykasu</span>
+          </div>
+        </div>
+
+        <div class="m3-hero-grid">
+          <!-- Gemini -->
+          <div class="m3-card m3-hero-card gemini-theme">
+            <div class="m3-card-header">
+              <span class="m3-group-title">Gemini</span>
+              <span class="m3-model-spent" id="gemini-total-spent">-- токенов</span>
+            </div>
+
+            <!-- 5h -->
+            <div class="m3-metric-tile">
+              <div class="m3-tile-top">
+                <span class="m3-tile-label">5 часов</span>
+                <div class="m3-val-cluster">
+                  <span class="m3-tokens-avail-tag" id="gemini-5h-tokens-avail" title="Оценка доступных токенов">~-- токенов</span>
+                  <span class="m3-tile-val serif-digit" id="gemini-5h-percent">--%</span>
+                </div>
+              </div>
+              <div class="m3-progress-track">
+                <div class="m3-progress-indicator gemini-fill" id="gemini-5h-bar" style="width: 0%"></div>
+              </div>
+              <div class="m3-tile-bottom">
+                <div class="m3-timer-cluster">
+                  <span class="m3-timer-tag" id="gemini-5h-timer">
+                    <i data-lucide="clock"></i>
+                    <span>--:--</span>
+                  </span>
+                  <span class="m3-reset-exact" id="gemini-5h-exact">--</span>
+                </div>
+                <span class="m3-pill-status" id="gemini-5h-status">--</span>
+              </div>
+            </div>
+
+            <!-- Weekly -->
+            <div class="m3-metric-tile secondary-tile">
+              <div class="m3-tile-top">
+                <span class="m3-tile-label">Неделя</span>
+                <div class="m3-val-cluster">
+                  <span class="m3-tokens-avail-tag" id="gemini-weekly-tokens-avail" title="Оценка доступных токенов">~-- токенов</span>
+                  <div class="m3-weekly-percent-group">
+                    <span class="m3-tile-val serif-digit" id="gemini-weekly-percent">--%</span>
+                    <span class="m3-projected-val" id="gemini-weekly-projected" title="Остаток, если сжечь весь 5-часовой лимит"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="m3-progress-track">
+                <div class="m3-progress-indicator gemini-weekly-fill" id="gemini-weekly-bar" style="width: 0%">
+                  <div class="m3-progress-ghost" id="gemini-weekly-ghost"></div>
+                </div>
+              </div>
+              <div class="m3-tile-bottom">
+                <div class="m3-timer-cluster">
+                  <span class="m3-timer-tag" id="gemini-weekly-timer">
+                    <i data-lucide="calendar"></i>
+                    <span>--</span>
+                  </span>
+                  <span class="m3-reset-exact" id="gemini-weekly-exact">--</span>
+                </div>
+                <span class="m3-impact-badge" id="gemini-weekly-impact" title="Сколько заберет текущий 5ч лимит"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Claude / GPT -->
+          <div class="m3-card m3-hero-card claude-theme">
+            <div class="m3-card-header">
+              <span class="m3-group-title">Claude & GPT</span>
+              <span class="m3-model-spent" id="claude-total-spent">-- токенов</span>
+            </div>
+
+            <!-- 5h -->
+            <div class="m3-metric-tile">
+              <div class="m3-tile-top">
+                <span class="m3-tile-label">5 часов</span>
+                <div class="m3-val-cluster">
+                  <span class="m3-tokens-avail-tag" id="claude-5h-tokens-avail" title="Оценка доступных токенов">~-- токенов</span>
+                  <span class="m3-tile-val serif-digit" id="claude-5h-percent">--%</span>
+                </div>
+              </div>
+              <div class="m3-progress-track">
+                <div class="m3-progress-indicator claude-fill" id="claude-5h-bar" style="width: 0%"></div>
+              </div>
+              <div class="m3-tile-bottom">
+                <div class="m3-timer-cluster">
+                  <span class="m3-timer-tag" id="claude-5h-timer">
+                    <i data-lucide="clock"></i>
+                    <span>--:--</span>
+                  </span>
+                  <span class="m3-reset-exact" id="claude-5h-exact">--</span>
+                </div>
+                <span class="m3-pill-status" id="claude-5h-status">--</span>
+              </div>
+            </div>
+
+            <!-- Weekly -->
+            <div class="m3-metric-tile secondary-tile">
+              <div class="m3-tile-top">
+                <span class="m3-tile-label">Неделя</span>
+                <div class="m3-val-cluster">
+                  <span class="m3-tokens-avail-tag" id="claude-weekly-tokens-avail" title="Оценка доступных токенов">~-- токенов</span>
+                  <div class="m3-weekly-percent-group">
+                    <span class="m3-tile-val serif-digit" id="claude-weekly-percent">--%</span>
+                    <span class="m3-projected-val" id="claude-weekly-projected" title="Остаток, если сжечь весь 5-часовой лимит"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="m3-progress-track">
+                <div class="m3-progress-indicator claude-weekly-fill" id="claude-weekly-bar" style="width: 0%">
+                  <div class="m3-progress-ghost" id="claude-weekly-ghost"></div>
+                </div>
+              </div>
+              <div class="m3-tile-bottom">
+                <div class="m3-timer-cluster">
+                  <span class="m3-timer-tag" id="claude-weekly-timer">
+                    <i data-lucide="calendar"></i>
+                    <span>--</span>
+                  </span>
+                  <span class="m3-reset-exact" id="claude-weekly-exact">--</span>
+                </div>
+                <span class="m3-impact-badge" id="claude-weekly-impact" title="Сколько заберет текущий 5ч лимит"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="m3-stats-grid">
+          <div class="m3-card m3-stat-card" id="total-tokens-card">
+            <span class="m3-stat-caption">Всего токенов</span>
+            <div class="m3-stat-number serif-display odometer-number" id="kpi-total-tokens">0</div>
+            <div class="m3-stat-footer">
+              <span class="m3-chip-mini in-chip">In: <strong id="kpi-in-tokens">0</strong></span>
+              <span class="m3-chip-mini out-chip">Out: <strong id="kpi-out-tokens">0</strong></span>
+            </div>
+          </div>
+
+          <div class="m3-card m3-stat-card">
+            <span class="m3-stat-caption">Время в проектах</span>
+            <div class="m3-stat-number serif-display" id="kpi-total-time">0ч 0м</div>
+          </div>
+
+          <div class="m3-card m3-stat-card">
+            <span class="m3-stat-caption">Проекты</span>
+            <div class="m3-stat-number serif-display" id="kpi-projects-count">0</div>
+          </div>
+
+          <div class="m3-card m3-stat-card">
+            <span class="m3-stat-caption">Шаги</span>
+            <div class="m3-stat-number serif-display" id="kpi-steps-count">0</div>
+          </div>
+        </div>
+
+        <!-- Top Projects Preview -->
+        <div class="m3-card m3-section-card">
+          <div class="m3-card-title-bar">
+            <h2 class="serif-title">Топ проектов</h2>
+            <button class="m3-link-btn" onclick="switchTab('tab-workspaces')">Все →</button>
+          </div>
+          <div class="m3-quick-projects" id="quick-projects-list"></div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ANALYTICS -->
+      <div id="tab-analytics" class="tab-pane">
+        <div class="m3-charts-row">
+          <div class="m3-card m3-chart-card">
+            <div class="m3-chart-header">
+              <h2 class="serif-title">Расход по дням</h2>
+            </div>
+            <div class="m3-canvas-wrap">
+              <canvas id="dailyTimelineChart"></canvas>
+            </div>
+          </div>
+
+          <div class="m3-card m3-chart-card m3-donut-card">
+            <div class="m3-chart-header">
+              <h2 class="serif-title">Доли проектов</h2>
+              <span class="m3-donut-total" id="donut-total-tokens">--</span>
+            </div>
+            <div class="m3-canvas-wrap donut-wrap">
+              <canvas id="projectsShareChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: WORKSPACES -->
+      <div id="tab-workspaces" class="tab-pane">
+        <div class="m3-card m3-table-card">
+          <div class="m3-table-header">
+            <h2 class="serif-title">Проекты</h2>
+            <div class="m3-search-pill">
+              <i data-lucide="search"></i>
+              <input type="text" id="project-search" placeholder="Поиск...">
+            </div>
+          </div>
+
+          <div class="m3-table-responsive">
+            <table class="m3-table">
+              <thead>
+                <tr>
+                  <th>Проект</th>
+                  <th>Аккаунт</th>
+                  <th>Путь</th>
+                  <th>Токены</th>
+                  <th>In / Out</th>
+                  <th>Время</th>
+                  <th>Диалоги</th>
+                  <th>Шаги</th>
+                  <th>Активность</th>
+                </tr>
+              </thead>
+              <tbody id="projects-tbody">
+                <tr><td colspan="9" class="m3-loading">Загрузка...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: HISTORY -->
+      <div id="tab-history" class="tab-pane">
+        <div class="m3-card m3-table-card">
+          <div class="m3-table-header">
+            <h2 class="serif-title">История</h2>
+          </div>
+
+          <div class="m3-table-responsive">
+            <table class="m3-table">
+              <thead>
+                <tr>
+                  <th>Диалог</th>
+                  <th>Аккаунт</th>
+                  <th>Проект</th>
+                  <th>Шаги</th>
+                  <th>Input</th>
+                  <th>Output</th>
+                  <th>Всего</th>
+                  <th>Дата</th>
+                </tr>
+              </thead>
+              <tbody id="conversations-tbody">
+                <tr><td colspan="8" class="m3-loading">Загрузка...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: Rename Account -->
+  <div id="rename-modal" class="m3-modal-overlay" style="display: none;">
+    <div class="m3-modal-card">
+      <div class="m3-modal-header">
+        <h3 class="serif-title">Переименовать аккаунт</h3>
+        <button class="m3-icon-btn m3-modal-close" onclick="closeRenameModal()" title="Закрыть">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="m3-modal-body">
+        <p class="m3-modal-desc" id="rename-email-label">Почта: ...</p>
+        <div class="m3-input-group">
+          <label for="rename-input">Имя / Псевдоним:</label>
+          <input type="text" id="rename-input" class="m3-text-input" placeholder="Например: Основной, Рабочий, Друг" maxlength="40" onkeydown="if(event.key==='Enter') submitAccountRename()">
+        </div>
+      </div>
+      <div class="m3-modal-actions">
+        <button class="m3-btn m3-btn-danger" id="rename-delete-btn" style="display: none;" onclick="submitDeleteProfile()">Удалить профиль</button>
+        <div style="flex: 1;"></div>
+        <button class="m3-btn m3-btn-text" onclick="closeRenameModal()">Отмена</button>
+        <button class="m3-btn m3-btn-primary" onclick="submitAccountRename()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create New Profile -->
+  <div id="new-profile-modal" class="m3-modal-overlay" style="display: none;">
+    <div class="m3-modal-card">
+      <div class="m3-modal-header">
+        <h3 class="serif-title">Новый профиль Antigravity</h3>
+        <button class="m3-icon-btn m3-modal-close" onclick="closeNewProfileModal()" title="Закрыть">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="m3-modal-body">
+        <p class="m3-modal-desc">
+          Создает отдельный профиль с изолированной сессией. Вы сможете войти во второй Google-аккаунт <strong>ровно один раз</strong>, и он навсегда останется сохраненным!
+        </p>
+        <div class="m3-input-group">
+          <label for="new-profile-alias">Название аккаунта / профиля:</label>
+          <input type="text" id="new-profile-alias" class="m3-text-input" placeholder="Например: Рабочий, Второй акк, Личный" maxlength="40" onkeydown="if(event.key==='Enter') submitCreateProfile(true)">
+        </div>
+      </div>
+      <div class="m3-modal-actions">
+        <button class="m3-btn m3-btn-text" onclick="closeNewProfileModal()">Отмена</button>
+        <button class="m3-btn m3-btn-primary" onclick="submitCreateProfile(true)">Создать и открыть IDE 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mini HUD Floating Mode Container -->
+  <div id="mini-hud-container" class="mini-hud-root" style="display: none;">
+    <div class="hud-header">
+      <div class="hud-brand">
+        <span class="hud-dot"></span>
+        <span class="hud-title">SENTINEL HUD</span>
+      </div>
+      <div class="hud-actions">
+        <button id="hud-pin-btn" class="hud-btn active" title="Закрепить поверх окон (Always on Top)" onclick="toggleHudPin()">
+          <i data-lucide="pin" id="hud-pin-icon"></i>
+        </button>
+        <button id="hud-settings-btn" class="hud-btn" title="Настройки виджета" onclick="toggleHudSettings()">
+          <i data-lucide="settings"></i>
+        </button>
+        <button id="hud-expand-btn" class="hud-btn" title="Развернуть окно" onclick="exitMiniHud()">
+          <i data-lucide="maximize-2"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- HUD Settings Dropdown Popover -->
+    <div id="hud-settings-popover" class="hud-popover" style="display: none;">
+      <div class="hud-popover-title">Отображение блоков</div>
+      <label class="hud-checkbox-label">
+        <input type="checkbox" id="hud-toggle-prompt" checked onchange="saveHudBlockPreferences()">
+        <span>Последний запрос</span>
+      </label>
+      <label class="hud-checkbox-label">
+        <input type="checkbox" id="hud-toggle-timer" checked onchange="saveHudBlockPreferences()">
+        <span>Время в работе</span>
+      </label>
+      <label class="hud-checkbox-label">
+        <input type="checkbox" id="hud-toggle-gemini" checked onchange="saveHudBlockPreferences()">
+        <span>Квота Gemini</span>
+      </label>
+      <label class="hud-checkbox-label">
+        <input type="checkbox" id="hud-toggle-claude" checked onchange="saveHudBlockPreferences()">
+        <span>Квота Claude</span>
+      </label>
+      <label class="hud-checkbox-label">
+        <input type="checkbox" id="hud-toggle-session" checked onchange="saveHudBlockPreferences()">
+        <span>Токены сессии</span>
+      </label>
+    </div>
+
+    <!-- HUD Main Body Cards -->
+    <div class="hud-body">
+      <!-- Last prompt tokens -->
+      <div class="hud-card highlight" id="hud-block-prompt">
+        <div class="hud-card-top">
+          <span class="hud-card-label">🔥 Запрос</span>
+          <span class="hud-card-sub" id="hud-prompt-split">0 in • 0 out</span>
+        </div>
+        <div class="hud-card-val in-accent serif-digit" id="hud-prompt-val">+0 tok</div>
+      </div>
+
+      <!-- Work timer -->
+      <div class="hud-card" id="hud-block-timer">
+        <div class="hud-card-top">
+          <span class="hud-card-label">⏱️ В работе</span>
+          <span class="hud-card-sub" id="hud-active-account-tag">Aykasu</span>
+        </div>
+        <div class="hud-card-val serif-digit" id="hud-timer-val">00:00:00</div>
+      </div>
+
+      <!-- Gemini Quota -->
+      <div class="hud-card" id="hud-block-gemini">
+        <div class="hud-card-top">
+          <span class="hud-card-label gemini-col">Gemini</span>
+          <span class="hud-card-sub" id="hud-gemini-avail">~-- токенов</span>
+        </div>
+        <div class="hud-bar-val-row">
+          <div class="hud-card-val serif-digit" id="hud-gemini-pct">--%</div>
+          <div class="hud-mini-progress">
+            <div class="hud-progress-fill gemini" id="hud-gemini-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claude Quota -->
+      <div class="hud-card" id="hud-block-claude">
+        <div class="hud-card-top">
+          <span class="hud-card-label claude-col">Claude</span>
+          <span class="hud-card-sub" id="hud-claude-avail">~-- токенов</span>
+        </div>
+        <div class="hud-bar-val-row">
+          <div class="hud-card-val serif-digit" id="hud-claude-pct">--%</div>
+          <div class="hud-mini-progress">
+            <div class="hud-progress-fill claude" id="hud-claude-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Tokens -->
+      <div class="hud-card" id="hud-block-session">
+        <div class="hud-card-top">
+          <span class="hud-card-label">⚡ Сессия</span>
+          <span class="hud-card-sub" id="hud-session-cost">~$0.00</span>
+        </div>
+        <div class="hud-card-val serif-digit" id="hud-session-val">+0 tok</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cleaner -->
+  <div id="cleaner-modal" class="m3-modal-overlay" style="display: none;">
+    <div class="m3-modal-card cleaner-card">
+      <div class="m3-modal-header">
+        <div class="cleaner-title-box">
+          <h3 class="serif-title">Очиститель диска и кэша Antigravity</h3>
+          <p class="cleaner-subtitle" id="cleaner-total-desc">Сканирование занятого места на диске...</p>
+        </div>
+        <button class="m3-icon-btn m3-modal-close" onclick="closeCleanerModal()" title="Закрыть">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="m3-modal-body">
+        <div class="cleaner-list-container" id="cleaner-items-list">
+          <div class="cleaner-loading">Загрузка информации о кэше...</div>
+        </div>
+      </div>
+      <div class="m3-modal-actions">
+        <button class="m3-btn m3-btn-text" onclick="loadCleanerData()">
+          <i data-lucide="rotate-cw" style="width: 14px; height: 14px; margin-right: 6px;"></i> Пересканировать
+        </button>
+        <div style="flex: 1;"></div>
+        <button class="m3-btn m3-btn-text" onclick="closeCleanerModal()">Отмена</button>
+        <button class="m3-btn m3-btn-danger" id="cleaner-submit-btn" onclick="submitCleanCaches()">
+          <i data-lucide="trash-2" style="width: 14px; height: 14px; margin-right: 6px;"></i> Очистить кэш
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Model Efficiency & Cost Calculator -->
+  <div id="advisor-modal" class="m3-modal-overlay" style="display: none;">
+    <div class="m3-modal-card advisor-card">
+      <div class="m3-modal-header">
+        <div class="advisor-title-box">
+          <h3 class="serif-title">Калькулятор стоимости и эффективность моделей</h3>
+          <p class="cleaner-subtitle">Официальные тарифы API против безлимитных квот Google AI Pro</p>
+        </div>
+        <button class="m3-icon-btn m3-modal-close" onclick="closeAdvisorModal()" title="Закрыть">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="m3-modal-body">
+        <!-- Advisor Stat Tiles -->
+        <div class="advisor-stat-grid">
+          <div class="advisor-tile">
+            <span class="advisor-tile-label">Всего токенов за всё время</span>
+            <span class="advisor-tile-val serif-digit" id="advisor-tokens-total">0</span>
+            <span class="advisor-tile-sub" id="advisor-tokens-split">Gemini: 0 • Claude: 0</span>
+          </div>
+          <div class="advisor-tile highlight">
+            <span class="advisor-tile-label">Стоимость через API</span>
+            <span class="advisor-tile-val serif-digit in-accent" id="advisor-cost-val">$0.00</span>
+            <span class="advisor-tile-sub">По официальным ценам Google & Anthropic</span>
+          </div>
+          <div class="advisor-tile success">
+            <span class="advisor-tile-label">Сэкономлено на подписке</span>
+            <span class="advisor-tile-val serif-digit" id="advisor-savings-val">~$0.00</span>
+            <span class="advisor-tile-sub">При цене подписки $20/мес</span>
+          </div>
+        </div>
+
+        <!-- Quota burn rate guide -->
+        <h4 class="advisor-heading">⚡ Аппетит моделей (Скорость расхода квоты)</h4>
+        <div class="advisor-burn-grid">
+          <div class="burn-card flash">
+            <div class="burn-header">
+              <span class="burn-badge">1x расход</span>
+              <strong>Gemini 2.0 Flash</strong>
+            </div>
+            <p>Ультра-быстрая и экономичная модель. Позволяет делать тысячи запросов в день без просадки лимита. Идеальна для автокомплита и мелких правок.</p>
+          </div>
+          <div class="burn-card pro">
+            <div class="burn-header">
+              <span class="burn-badge">~3x расход</span>
+              <strong>Gemini 2.5 Pro</strong>
+            </div>
+            <p>Золотой стандарт Antigravity: миллионный контекст, выдающееся мышление и высокая скорость. Превосходна для больших кодовых баз.</p>
+          </div>
+          <div class="burn-card sonnet">
+            <div class="burn-header">
+              <span class="burn-badge">~10x расход</span>
+              <strong>Claude 3.5 Sonnet</strong>
+            </div>
+            <p>Эталон в архитектуре и сложном рефакторинге. «Сжигает» квоту в 3-4 раза быстрее Gemini Pro. Рекомендуется включать для сложных багов.</p>
+          </div>
+        </div>
+
+        <!-- Interactive Calculator -->
+        <h4 class="advisor-heading">🧮 Интерактивный калькулятор стоимости</h4>
+        <div class="advisor-calc-widget">
+          <div class="calc-input-line">
+            <label for="calc-million-tokens">Объем токенов (в миллионах):</label>
+            <input type="number" id="calc-million-tokens" class="m3-text-input calc-num-input" value="10" min="0.1" step="0.5" oninput="recalcAdvisorTokens()">
+            <span class="calc-unit">млн токенов</span>
+          </div>
+          <div class="calc-table-box" id="calc-table-box">
+            <!-- Dynamic comparison items -->
+          </div>
+        </div>
+      </div>
+      <div class="m3-modal-actions">
+        <div style="flex: 1;"></div>
+        <button class="m3-btn m3-btn-primary" onclick="closeAdvisorModal()">Понятно</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: System Update -->
+  <div id="update-modal" class="m3-modal-overlay" style="display: none;">
+    <div class="m3-modal-card update-card">
+      <div class="m3-modal-header">
+        <div class="update-title-box">
+          <h3 class="serif-title">Доступно обновление! 🚀</h3>
+          <p class="cleaner-subtitle" id="update-version-label">Новая версия: ...</p>
+        </div>
+        <button class="m3-icon-btn m3-modal-close" onclick="closeUpdateModal()" title="Закрыть">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="m3-modal-body">
+        <div class="update-notes-container">
+          <div class="update-notes-heading">Что нового:</div>
+          <div class="update-notes-body" id="update-notes-content">Загрузка информации об обновлении...</div>
+        </div>
+        <div id="update-progress-box" style="display: none; margin-top: 16px;">
+          <div style="font-size: 0.8rem; color: #a8c7fa; margin-bottom: 6px;" id="update-status-text">Скачивание и бесшовная замена...</div>
+          <div class="hud-mini-progress" style="height: 6px;">
+            <div class="hud-progress-fill gemini" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="m3-modal-actions">
+        <button class="m3-btn m3-btn-text" onclick="closeUpdateModal()">Позже</button>
+        <button class="m3-btn m3-btn-primary" id="btn-do-update" onclick="installUpdateNow()">
+          <i data-lucide="download" style="width: 14px; height: 14px; margin-right: 6px;"></i> Обновить и перезапустить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

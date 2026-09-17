@@ -1,0 +1,43 @@
+name: Release Antigravity BetterSessions
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Release Binary
+        run: cargo build --release
+
+      - name: Prepare Binary Asset
+        shell: pwsh
+        run: |
+          Copy-Item -Path "target/release/antigravity-bettersessions.exe" -Destination "antigravity-bettersessions.exe" -Force
+          Get-Item "antigravity-bettersessions.exe" | Format-List Length, FullName
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: antigravity-bettersessions.exe
+          name: Antigravity BetterSessions ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false

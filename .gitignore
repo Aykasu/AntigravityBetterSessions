@@ -1,0 +1,8 @@
+/target
+*.WebView2/
+*.log
+*.exe
+run_*.txt
+stdout.txt
+stderr.txt
+help.txt

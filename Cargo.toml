@@ -1,0 +1,27 @@
+[package]
+name = "antigravity-bettersessions"
+version = "0.2.0"
+edition = "2021"
+description = "Antigravity BetterSessions • Supercharged Multi-Profile & Token Sentinel"
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+axum = { version = "0.7", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rusqlite = { version = "0.32", features = ["bundled"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+chrono = { version = "0.4", features = ["serde"] }
+walkdir = "2.5"
+dirs = "5.0"
+sysinfo = "0.31"
+wry = "0.57.0"
+tao = "0.37.0"
+tray-icon = "0.25.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
