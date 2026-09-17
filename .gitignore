@@ -2,6 +2,8 @@
 *.WebView2/
 *.log
 *.exe
+*.old
+*.new
 run_*.txt
 stdout.txt
 stderr.txt

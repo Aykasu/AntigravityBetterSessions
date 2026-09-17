@@ -218,26 +218,21 @@ function switchTab(targetTabId) {
   const panes = document.querySelectorAll('.tab-pane');
 
   tabs.forEach(btn => {
-    if (btn.getAttribute('data-tab') === targetTabId) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === targetTabId);
   });
 
   panes.forEach(pane => {
-    if (pane.id === targetTabId) {
-      pane.classList.add('active');
-    } else {
-      pane.classList.remove('active');
-    }
+    pane.classList.toggle('active', pane.id === targetTabId);
   });
 
   if (targetTabId === 'tab-analytics') {
+    if (rawStats) {
+      renderCharts(rawStats, allProjects);
+    }
     setTimeout(() => {
       if (dailyChart) dailyChart.resize();
       if (projectsChart) projectsChart.resize();
-    }, 50);
+    }, 30);
   }
 }
 
@@ -606,9 +601,9 @@ async function fetchStats() {
 }
 
 // Session metrics tracking
-let sessionTokensStartByAccount = { all: null, aykasune: null, Aykasu: null };
-let lastKnownTokensByAccount = { all: null, aykasune: null, Aykasu: null };
-let lastStepDelta = 0;
+let sessionTokensStartByAccount = {};
+let lastKnownTokensByAccount = {};
+let lastStepDeltaByAccount = {};
 
 // Smooth Number Counter Animation
 function animateNumber(elementId, targetVal) {
@@ -623,9 +618,9 @@ function animateNumber(elementId, targetVal) {
   }
 
   const diff = targetVal - currentVal;
-  if (Math.abs(diff) > 0 && Math.abs(diff) < 5000000) {
+  if (Math.abs(diff) > 0 && Math.abs(diff) < 2000000) {
     let start = null;
-    const duration = 600;
+    const duration = 150; // Snappy 150ms animation
     function step(timestamp) {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
@@ -671,7 +666,7 @@ function applyAccountFilterAndRender(stats) {
   // Track session and step metrics
   updateMetricsStrip(totalTokens, stats, filteredProjects);
 
-  // Animate numbers smoothly
+  // Fast number updates
   animateNumber('kpi-total-tokens', totalTokens);
   document.getElementById('kpi-in-tokens').textContent = formatNumber(inTokens);
   document.getElementById('kpi-out-tokens').textContent = formatNumber(outTokens);
@@ -685,43 +680,79 @@ function applyAccountFilterAndRender(stats) {
   renderQuickProjects(filteredProjects.slice(0, 3));
   renderProjectsTable(filteredProjects);
   renderConversationsTable(filteredConversations);
-  renderCharts(stats, filteredProjects);
+
+  // Only render heavy charts if analytics tab is active to avoid lag
+  const analyticsTab = document.getElementById('tab-analytics');
+  if (analyticsTab && analyticsTab.classList.contains('active')) {
+    renderCharts(stats, filteredProjects);
+  }
 }
 
 // Live Token Metrics Strip
 function updateMetricsStrip(currentTotalTokens, stats, filteredProjects) {
   const acc = currentAccountFilter;
 
-  // Session start baseline
-  if (sessionTokensStartByAccount[acc] === null) {
+  // Session start baseline (safely check for null/undefined)
+  if (sessionTokensStartByAccount[acc] == null) {
     sessionTokensStartByAccount[acc] = currentTotalTokens;
     lastKnownTokensByAccount[acc] = currentTotalTokens;
   }
 
   // Session delta
-  const sessionDelta = currentTotalTokens - sessionTokensStartByAccount[acc];
+  const startBaseline = sessionTokensStartByAccount[acc] || currentTotalTokens;
+  const sessionDelta = Math.max(0, currentTotalTokens - startBaseline);
   const sessionEl = document.getElementById('live-session-delta');
   if (sessionEl) {
     sessionEl.textContent = sessionDelta > 0 ? `+${formatNumber(sessionDelta)}` : '+0';
   }
 
-  // Step delta
-  if (lastKnownTokensByAccount[acc] !== null && currentTotalTokens > lastKnownTokensByAccount[acc]) {
-    lastStepDelta = currentTotalTokens - lastKnownTokensByAccount[acc];
+  // Step delta (guard against raw lifetime diff)
+  const prevTokens = lastKnownTokensByAccount[acc];
+  if (prevTokens != null && currentTotalTokens > prevTokens) {
+    const rawDelta = currentTotalTokens - prevTokens;
+    if (rawDelta > 0 && rawDelta < 2000000) {
+      lastStepDeltaByAccount[acc] = rawDelta;
 
-    // Visual glow
-    const card = document.getElementById('total-tokens-card');
-    if (card) {
-      card.classList.remove('token-pulse-glow');
-      void card.offsetWidth;
-      card.classList.add('token-pulse-glow');
+      // Visual glow
+      const card = document.getElementById('total-tokens-card');
+      if (card) {
+        card.classList.remove('token-pulse-glow');
+        void card.offsetWidth;
+        card.classList.add('token-pulse-glow');
+      }
     }
   }
   lastKnownTokensByAccount[acc] = currentTotalTokens;
 
+  // Determine prompt tokens to display
+  let promptTokens = lastStepDeltaByAccount[acc] || 0;
+  if (!promptTokens && stats && stats.last_prompt_tokens > 0 && stats.last_prompt_tokens < 2000000) {
+    promptTokens = stats.last_prompt_tokens;
+  }
+
   const stepEl = document.getElementById('live-step-delta');
   if (stepEl) {
-    stepEl.textContent = lastStepDelta > 0 ? `+${formatNumber(lastStepDelta)}` : '+0';
+    stepEl.textContent = promptTokens > 0 ? `+${formatNumber(promptTokens)}` : '+0';
+    if (stats && stats.last_prompt_in) {
+      stepEl.title = `Последний запрос: Входных: ${formatNumber(stats.last_prompt_in)} | Ответ: ${formatNumber(stats.last_prompt_out)}`;
+    }
+  }
+
+  // Profile indicator in strip
+  const profileEl = document.getElementById('live-active-account');
+  if (profileEl) {
+    if (currentAccountFilter === 'all') {
+      profileEl.textContent = 'Все аккаунты';
+      profileEl.title = 'Суммарно по всем профилям';
+    } else {
+      const p = accountsList.find(a => 
+        a.id.toLowerCase() === currentAccountFilter.toLowerCase() ||
+        (a.email && a.email.toLowerCase() === currentAccountFilter.toLowerCase())
+      );
+      const name = p ? (p.alias || p.name || p.email) : currentAccountFilter;
+      profileEl.textContent = name;
+      profileEl.title = p && p.isActive ? 'Активен сейчас в Antigravity' : 'Сохраненные данные профиля';
+    }
   }
 
   // Today tokens

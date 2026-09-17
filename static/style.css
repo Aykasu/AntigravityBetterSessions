@@ -570,12 +570,12 @@ body.m3-theme {
 
 .tab-pane.active {
   display: block;
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.1s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Material 3 Cards */
@@ -1304,7 +1304,11 @@ body.mini-hud-mode .m3-modal-overlay {
   display: none !important;
 }
 
-.mini-hud-root {
+body:not(.mini-hud-mode) .mini-hud-root {
+  display: none !important;
+}
+
+body.mini-hud-mode .mini-hud-root {
   display: flex !important;
   flex-direction: column;
   width: 100vw;
